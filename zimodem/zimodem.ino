@@ -109,7 +109,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DTR_LOW  HIGH
 #endif
 
-#define DEFAULT_BAUD_RATE 1200
+#define DEFAULT_BAUD_RATE 115200
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
@@ -118,8 +118,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 class ZMode
 {
   public:
-    virtual void serialIncoming();
+    virtual void serialIncoming();    
     virtual void loop();
+    virtual void ethernetIncoming(struct pbuf* p, struct netif* inp);
 };
 
 #include "pet2asc.h"
@@ -436,6 +437,9 @@ void checkFactoryReset()
     if(resetPushTimer != 0)
       resetPushTimer=0;
 #endif
+}
+void ZMode::ethernetIncoming(struct pbuf* p, struct netif* inp) {
+  //not implemented
 }
 
 void loop() 

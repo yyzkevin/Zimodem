@@ -1362,6 +1362,10 @@ ZResult ZCommand::doDialStreamCommand(unsigned long vval, uint8_t *vbuf, int vle
       }
       phb = phb->next;
     }
+    if(vval == 1234567) {
+      packetMode.switchTo();
+      return ZOK;
+    }
     /*
     if(vval == 5517545) // slip no login
     {
