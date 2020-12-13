@@ -1,0 +1,5 @@
+/*
+
+*/
+class ZPacket : public ZMode {
+ };

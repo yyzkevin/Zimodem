@@ -137,6 +137,7 @@ class ZMode
 #include "zcommand.h"
 #include "zconfigmode.h"
 #include "zprint.h"
+#include "zpacket.h"
 
 #ifdef INCLUDE_SD_SHELL
 #include "proto_xmodem.h"
@@ -154,6 +155,7 @@ static String termType = DEFAULT_TERMTYPE;
 static ZMode *currMode = null;
 static ZStream streamMode;
 //static ZSlip slipMode; // not yet implemented
+static ZPacket packetMode;
 static ZCommand commandMode;
 static ZPrint printMode;
 static ZConfig configMode;
