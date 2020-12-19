@@ -93,6 +93,7 @@ void ZPacket::debug_frame_print(ethernet_packet *p) {
     int i;
     if(p->ppEnqueue) {
         if(p->payload[32] !=0xAA || p->payload[33] !=0xAA)  return;   // Should always be snap?
+        if(ipx_only && ((p->payload[38] != 0x81) || (p->payload[39] != 0x37))) return;
         serial.prints("pp:");
         for(i=0;i<6;i++) {
             serial.printf("%02x ",p->payload[4+i]);
@@ -105,6 +106,7 @@ void ZPacket::debug_frame_print(ethernet_packet *p) {
         }
     }
     else {
+        if(ipx_only && ((p->payload[12] != 0x81) || (p->payload[13] != 0x37))) return;
         serial.prints("np:");
         for(i=0;i<p->len;i++) {
             serial.printf("%02x ",p->payload[i]);

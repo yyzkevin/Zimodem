@@ -18,7 +18,7 @@ with better understanding of the platform, this is likely does not need to be so
 */
 
 #define max_packet_queue    16
-
+#define ipx_only            1
 
 struct RxControl {              //Size = 96 bits / 12 Bytes
         signed rssi:8;
