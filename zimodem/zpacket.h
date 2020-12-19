@@ -91,8 +91,7 @@ class ZPacket : public ZMode {
 
     public:
         void switchTo(); 
-        void serialIncoming();
-        void ethernetIncoming(struct pbuf* p, struct netif* inp);
+        void serialIncoming();        
         void loop();        
         
 };
