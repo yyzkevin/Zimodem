@@ -50,8 +50,6 @@ struct ethernet_packet {
 };
 struct ethernet_packet *packet_queue;
 
-typedef void (*wifi_raw_recv_cb_fn)(struct RxPacket *);
-
 /*
 Lazy, putting this code in the header to deal with the fact this is a .ino project.
 */
@@ -80,11 +78,6 @@ extern "C" void ICACHE_RAM_ATTR  __wrap_ppEnqueueRxq(void *a) {
     rx_frame(((struct RxPacket *)(((void **)a)[4])));
    __real_ppEnqueueRxq(a);  
 }
-
-
-
-
-
 
 class ZPacket : public ZMode {
     private:

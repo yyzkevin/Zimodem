@@ -7,28 +7,13 @@
 
 extern "C" struct netif* eagle_lwip_getif (int netif_index);
 
-
-
-
-netif_input_fn current_rx_handler;
-err_t zpacket_rx_handler(struct pbuf* p, struct netif* inp) {
-    currMode->ethernetIncoming(p,inp);
-    return current_rx_handler(p,inp);    
-}
-
-
 void ZPacket::switchTo() {        
     serial.println("Entering Packet Mode\n");    
     serial.flush();
     serial.setFlowControlType(FCT_DISABLED);
 
-
-
-
     ESPif = eagle_lwip_getif(0);    
     if(ESPif != null) {
-        current_rx_handler = ESPif->input;      
-        //ESPif->input = zpacket_rx_handler;
         serial.println("Got ESP IF\n");                
         serial.flush();
     }      
@@ -40,27 +25,6 @@ void ZPacket::serialIncoming() {
 //    serial.prints("incoming serial");
 //    serial.flush();
 }
-
-
-void ZPacket::ethernetIncoming(struct pbuf* p, struct netif* inp) {
-    struct pbuf *q;
-    ethernet_packet *pkt;
-    
-    for(q = p; q != NULL; q = q->next) {        
-        if(q->len != 68 && q->len != 60) continue;
-        pkt = (ethernet_packet *) malloc(sizeof(ethernet_packet));
-        if(!pkt) return;
-        pkt->next = packet_queue;
-        pkt->payload = (char *)malloc(q->len);
-        if(!pkt->payload) {
-            delete pkt;
-            return;
-        }
-        pkt->len = pbuf_copy_partial(q,pkt->payload,1500,0);
-        packet_queue=pkt;        
-    }       
-}
-
 
 void ZPacket::debug_frame_print(ethernet_packet *p) {
     int i;
