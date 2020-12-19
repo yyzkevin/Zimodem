@@ -8,6 +8,9 @@ when intercepting ppEnqueueRxq
 
 https://github.com/ernacktob/esp8266_wifi_raw
 
+Reason for using ppEnqueueRxq vs  NETif->input is due to some mishandling of certain frames (ipx/appletalk) and I don't
+know how to fix the if_llc stuff in the libraries.  
+
 
 */
 
