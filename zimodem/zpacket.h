@@ -11,8 +11,14 @@ https://github.com/ernacktob/esp8266_wifi_raw
 Reason for using ppEnqueueRxq vs  NETif->input is due to some mishandling of certain frames (ipx/appletalk) and I don't
 know how to fix the if_llc stuff in the libraries.  
 
+not sure what I am doing wrong, but not seeing all expected packets via ppEnqueueq, so now using a combination.
+
+with better understanding of the platform, this is likely does not need to be so messy.
 
 */
+
+#define max_packet_queue    16
+
 
 struct RxControl {              //Size = 96 bits / 12 Bytes
         signed rssi:8;
@@ -48,10 +54,13 @@ struct RxPacket {
 
 struct ethernet_packet {
     char *payload;
+    uint8_t ppEnqueue;
     uint16_t len;
     struct ethernet_packet *next;
 };
 struct ethernet_packet *packet_queue;
+uint8_t packet_queue_depth;
+byte mac_address[6];
 
 class ZPacket : public ZMode {
     private:
@@ -59,7 +68,7 @@ class ZPacket : public ZMode {
         struct netif* ESPif;        
         void push_packet(char *payload,uint16_t len);
         void debug_frame_print(ethernet_packet *p);
-
+        void ethernetIncoming(struct pbuf* p, struct netif* inp);
     public:
         void switchTo(); 
         void serialIncoming();        
@@ -71,21 +80,24 @@ class ZPacket : public ZMode {
 Lazy, putting this code in the header to deal with the fact this is a .ino project.
 */
 void ICACHE_RAM_ATTR rx_frame(struct RxPacket *p) {    
+    if(packet_queue_depth > max_packet_queue) return;
     /*
     b0..b1 = protocol (always 0)
     b2..b3 = type (10 for data)
     b4..b7 = subtype
     */
-    if(p->data[0] != 0x08) return;  // We only want to  handle data frames        
+    //if(p->data[0] != 0x08) return;  // We only want to  handle data frames        
     if(p->rx_ctl.legacy_length > 1514) return; //any larger means something is wrong
     
     ethernet_packet *pkt;
     pkt = (ethernet_packet *) malloc(sizeof(ethernet_packet));
     pkt->len=p->rx_ctl.legacy_length-12;//this length includes RxControl
     pkt->payload=(char *)malloc(pkt->len);
+    pkt->ppEnqueue=1;
     memcpy(pkt->payload,p->data,pkt->len);    
     pkt->next = packet_queue;
     packet_queue=pkt;    
+    packet_queue_depth++;
 }
 
 bool enable_rx_frame = false;
