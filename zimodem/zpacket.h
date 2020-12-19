@@ -53,6 +53,20 @@ struct ethernet_packet {
 };
 struct ethernet_packet *packet_queue;
 
+class ZPacket : public ZMode {
+    private:
+        ZSerial serial;           
+        struct netif* ESPif;        
+        void push_packet(char *payload,uint16_t len);
+        void debug_frame_print(ethernet_packet *p);
+
+    public:
+        void switchTo(); 
+        void serialIncoming();        
+        void loop();        
+        
+};
+
 /*
 Lazy, putting this code in the header to deal with the fact this is a .ino project.
 */
@@ -74,24 +88,10 @@ void ICACHE_RAM_ATTR rx_frame(struct RxPacket *p) {
     packet_queue=pkt;    
 }
 
+bool enable_rx_frame = false;
 
 extern "C" void __real_ppEnqueueRxq(void *);
 extern "C" void ICACHE_RAM_ATTR  __wrap_ppEnqueueRxq(void *a) {
-//   packet_received_cb((RxPacket *)a);
-    rx_frame(((struct RxPacket *)(((void **)a)[4])));
+    if(enable_rx_frame) rx_frame(((struct RxPacket *)(((void **)a)[4])));
    __real_ppEnqueueRxq(a);  
 }
-
-class ZPacket : public ZMode {
-    private:
-        ZSerial serial;           
-        struct netif* ESPif;        
-        void push_packet(char *payload,uint16_t len);
-        void debug_frame_print(ethernet_packet *p);
-
-    public:
-        void switchTo(); 
-        void serialIncoming();        
-        void loop();        
-        
-};

@@ -7,11 +7,12 @@
 
 extern "C" struct netif* eagle_lwip_getif (int netif_index);
 
+
 void ZPacket::switchTo() {        
     serial.println("Entering Packet Mode\n");    
     serial.flush();
     serial.setFlowControlType(FCT_DISABLED);
-
+    enable_rx_frame=true;
     ESPif = eagle_lwip_getif(0);    
     if(ESPif != null) {
         serial.println("Got ESP IF\n");                
@@ -53,16 +54,19 @@ TX test code
 void ZPacket::debug_frame_print(ethernet_packet *p) {
     int i;
     
-    if(p->payload[23]==0xAA && p->payload[24]==0xAA) {
-        serial.printf("we snappin");
+    if(p->payload[32] !=0xAA || p->payload[33] !=0xAA)  return;   // Should always be snap?
+    
+    for(i=0;i<6;i++) {
+        serial.printf("%02x ",p->payload[4+i]);
     }
-
-    serial.printf("Pk[%02u]:",p->len);    
-    for(i=0;i<p->len;i++) {            
-            serial.printf("%02x ",p->payload[i]);       
+    for(i=0;i<6;i++) {
+        serial.printf("%02x ",p->payload[16+i]);
     }
-     serial.print("\n\r");
-    serial.flush();
+    for(i=37;i<p->len;i++) {
+        serial.printf("%02x ",p->payload[i]);
+    }
+    serial.print("\n\r\n\r");
+    serial.flush();    
 }
 void ZPacket::loop() {       
     ethernet_packet *p;
