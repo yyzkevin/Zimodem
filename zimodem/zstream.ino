@@ -23,8 +23,7 @@ void ZStream::switchTo(WiFiClientNode *conn)
   serial.setXON(true);
   serial.setPetsciiMode(isPETSCII());
   serial.setFlowControlType(getFlowControl());
-  
-  
+  currMode=&streamMode;
   checkBaudChange();
   if(pinSupport[pinDTR])
     lastDTR = digitalRead(pinDTR);
