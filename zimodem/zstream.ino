@@ -254,4 +254,3 @@ void ZStream::loop()
   }
   checkBaudChange();
 }
-
