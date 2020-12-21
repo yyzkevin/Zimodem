@@ -350,7 +350,7 @@ void ZSerial::flushAlways()
 
 void ZSerial::flush()
 {
-  while((TBUFtail != TBUFhead) && (isSerialOut()))
+  while((TBUFtail != TBUFhead) && (isSerialOut())) 
   {
     hwSerialFlush();
     serialOutDeque();

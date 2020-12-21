@@ -109,7 +109,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 # define DEFAULT_DTR_LOW  HIGH
 #endif
 
-#define DEFAULT_BAUD_RATE 921600
+#define DEFAULT_BAUD_RATE 9600//921600
 #define DEFAULT_SERIAL_CONFIG SERIAL_8N1
 #define MAX_PIN_NO 50
 #define INTERNAL_FLOW_CONTROL_DIV 380
@@ -139,6 +139,8 @@ class ZMode
 #include "zconfigmode.h"
 #include "zprint.h"
 #include "zpacket.h"
+
+
 
 #ifdef INCLUDE_SD_SHELL
 #include "proto_xmodem.h"
@@ -376,6 +378,7 @@ void setup()
 #endif    
   initSDShell();
   currMode = &commandMode;
+
   if(!SPIFFS.begin())
   {
     SPIFFS.format();

@@ -1788,7 +1788,10 @@ ZResult ZCommand::doSerialCommand()
 {
   int len=eon;
   String sbuf = getNextSerialCommand();
-
+  if(sbuf[0]=='K') {
+    packetMode.switchTo();
+    return ZOK;
+  }
   if((sbuf.length()==2)
   &&(lc(sbuf[0])=='a')
   &&(sbuf[1]=='/'))

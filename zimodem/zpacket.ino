@@ -2,7 +2,16 @@
 #include "lwip/init.h" // LWIP_VERSION_
 #include "lwip/netif.h" // struct netif
 #include "lwip/opt.h"
+#include "lwip/pbuf.h"
+
 #include "osapi.h"
+#include "slip.h"
+
+/*
+Mode to for SLIP encapsulated IPX packets.
+
+This is all unstable, hacked in for testing to see if it is feasible.
+*/
 
 
 extern "C" struct netif* eagle_lwip_getif (int netif_index);
@@ -59,10 +68,64 @@ void ZPacket::ethernetIncoming(struct pbuf* p, struct netif* inp) {
         packet_queue_depth++;
     }       
 }
+void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
+        uint16_t packet_len;
+        packet_buffer[0]=0xFF;
+        packet_buffer[1]=0xFF;
+        packet_buffer[2]=0xFF;
+        packet_buffer[3]=0xFF;
+        packet_buffer[4]=0xFF;
+        packet_buffer[5]=0xFF;
+        packet_buffer[6]=mac_address[0];
+        packet_buffer[7]=mac_address[1];
+        packet_buffer[8]=mac_address[2];
+        packet_buffer[9]=mac_address[3];
+        packet_buffer[10]=mac_address[4];
+        packet_buffer[11]=mac_address[5];
+        
+        packet_len = len + 6;
+
+        packet_buffer[12]=(packet_len >> 8) & 0xFF;
+        packet_buffer[13]=packet_len & 0xFF;
+
+        packet_buffer[14]=0xAA;
+        packet_buffer[15]=0xAA;
+        packet_buffer[16]=0x03;
+        packet_buffer[17]=0x00;
+        packet_buffer[18]=0x00;
+        packet_buffer[19]=0x00;
+        packet_buffer[20]=0x81;
+        packet_buffer[21]=0x37;
+        memcpy(packet_buffer+22,payload,len);
+        send_frame(packet_buffer,packet_len+14);
+
+}
+void ZPacket::slip_rx(uint8_t ch) {
+    uint16_t decoded_size;
+    if(ch == 0xC0) { 
+            decoded_size=SLIP::decode(slip_rx_buffer+1,3030,slip_rx_buffer_decoded);                        
+            ipx_send(slip_rx_buffer,slip_rx_buffer_len);
+            slip_rx_buffer_len=0;                
+            return;
+    }
+    if(slip_rx_buffer_len > 1000) return;//temporary hack       
+    slip_rx_buffer[slip_rx_buffer_len]=ch;
+    slip_rx_buffer_len++;        
+}
 
 void ZPacket::serialIncoming() {
-//    serial.prints("incoming serial");
-//    serial.flush();
+    int bytesAvailable = HWSerial.available();
+    if(bytesAvailable == 0) return;
+    while(--bytesAvailable >= 0) {
+        slip_rx(HWSerial.read());
+    }      
+}
+void ZPacket::send_frame(uint8_t *payload,uint16_t len) {
+    pbuf *tx;
+    tx = pbuf_alloc(PBUF_RAW_TX, len, PBUF_RAM);        
+    tx->len = len;
+    memcpy(tx->payload,payload,len);
+    ESPif->linkoutput(ESPif,tx);
 }
 
 /*
@@ -91,30 +154,42 @@ TX test code
 */
 void ZPacket::debug_frame_print(ethernet_packet *p) {    
     int i;
-    if(p->ppEnqueue) {
-        if(p->payload[32] !=0xAA || p->payload[33] !=0xAA)  return;   // Should always be snap?
-        if(ipx_only && ((p->payload[38] != 0x81) || (p->payload[39] != 0x37))) return;
-        serial.prints("pp:");
-        for(i=0;i<6;i++) {
-            serial.printf("%02x ",p->payload[4+i]);
-        }
-        for(i=0;i<6;i++) {
-            serial.printf("%02x ",p->payload[16+i]);
-        }
-        for(i=37;i<p->len;i++) {
-            serial.printf("%02x ",p->payload[i]);
-        }
+    if(p->ppEnqueue) {        
+        memcpy(packet_buffer,p->payload+4,6);
+        memcpy(packet_buffer+6,p->payload+16,6);
+        memcpy(packet_buffer+12,p->payload+37,p->len-37);
+        if(p->payload[32] !=0xAA || p->payload[33] !=0xAA)  return;   // Should always be snap?                
     }
     else {
-        if(ipx_only && ((p->payload[12] != 0x81) || (p->payload[13] != 0x37))) return;
-        serial.prints("np:");
-        for(i=0;i<p->len;i++) {
-            serial.printf("%02x ",p->payload[i]);
-        }
+        memcpy(packet_buffer,p->payload,p->len);
     }
-    serial.prints("\n\r\n\r");
-    serial.flush();
+    if(packet_buffer[13] != 0x81 || packet_buffer[14] != 0x37) return;      //IPX ONLY
+    SLIP::encode(packet_buffer,p->len,slip_tx_buffer);    
+    for(i=0;i<p->len;i++) {  
+        serial.printc(packet_buffer[i]);              
+    }           
+    serial.flush();    
 }
+void ZPacket::debug_msg(uint8_t *msg,uint16_t len) {        
+    packet_buffer[0]=0xFF;
+    packet_buffer[1]=0xFF;
+    packet_buffer[2]=0xFF;
+    packet_buffer[3]=0xFF;
+    packet_buffer[4]=0xFF;
+    packet_buffer[5]=0xFF;
+    packet_buffer[6]=0x5C;
+    packet_buffer[7]=0xCF;
+    packet_buffer[8]=0x7F;
+    packet_buffer[9]=0x8B;
+    packet_buffer[10]=0x1C;
+    packet_buffer[11]=0x9A;
+    packet_buffer[12]=0x12;
+    packet_buffer[13]=0x34;
+    memcpy(packet_buffer+14,msg,len);    
+    send_frame(packet_buffer,len+14);
+    
+}
+
 void ZPacket::loop() {       
     ethernet_packet *p;
     while(packet_queue != NULL) {
@@ -124,7 +199,7 @@ void ZPacket::loop() {
         free(p->payload);
         delete p;
         packet_queue_depth--;
-    }            
+    }        
     //currMode = &commandMode;    
 }
 
