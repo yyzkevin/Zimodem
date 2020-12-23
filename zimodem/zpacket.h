@@ -72,13 +72,13 @@ class ZPacket : public ZMode {
         uint8_t slip_rx_buffer[3030];   
         uint8_t slip_rx_buffer_decoded[3030];
         uint16_t slip_rx_buffer_len;
+        uint16_t slip_rx_fsm;
         
         void push_packet(char *payload,uint16_t len);
-        void debug_frame_print(ethernet_packet *p);
+        void slip_tx(ethernet_packet *p);
         void ethernetIncoming(struct pbuf* p, struct netif* inp);
         void send_frame(uint8_t *payload,uint16_t len);
-        void ipx_send(uint8_t *payload,uint16_t len);
-        void debug_msg(uint8_t *msg,uint16_t len);     
+        void ipx_send(uint8_t *payload,uint16_t len);        
         void slip_rx(uint8_t c);
     public:
         void switchTo(); 

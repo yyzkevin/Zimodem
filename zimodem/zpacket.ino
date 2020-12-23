@@ -7,6 +7,8 @@
 #include "osapi.h"
 #include "slip.h"
 
+
+
 /*
 Mode to for SLIP encapsulated IPX packets.
 
@@ -68,6 +70,8 @@ void ZPacket::ethernetIncoming(struct pbuf* p, struct netif* inp) {
         packet_queue_depth++;
     }       
 }
+
+
 void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
         uint16_t packet_len;
         packet_buffer[0]=0xFF;
@@ -83,34 +87,31 @@ void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
         packet_buffer[10]=mac_address[4];
         packet_buffer[11]=mac_address[5];
         
-        packet_len = len + 6;
-
+        packet_len = len + 3;
         packet_buffer[12]=(packet_len >> 8) & 0xFF;
         packet_buffer[13]=packet_len & 0xFF;
 
-        packet_buffer[14]=0xAA;
-        packet_buffer[15]=0xAA;
-        packet_buffer[16]=0x03;
-        packet_buffer[17]=0x00;
-        packet_buffer[18]=0x00;
-        packet_buffer[19]=0x00;
-        packet_buffer[20]=0x81;
-        packet_buffer[21]=0x37;
-        memcpy(packet_buffer+22,payload,len);
-        send_frame(packet_buffer,packet_len+14);
-
+        packet_buffer[14]=0xE0;         
+        packet_buffer[15]=0xE0;         
+        packet_buffer[16]=0x03;         
+        memcpy(packet_buffer+17,payload,len);
+        send_frame(packet_buffer,len+17);        
 }
+
+
+
 void ZPacket::slip_rx(uint8_t ch) {
+    //does not handle  escapes properly yet
     uint16_t decoded_size;
-    if(ch == 0xC0) { 
-            decoded_size=SLIP::decode(slip_rx_buffer+1,3030,slip_rx_buffer_decoded);                        
-            ipx_send(slip_rx_buffer,slip_rx_buffer_len);
-            slip_rx_buffer_len=0;                
-            return;
-    }
-    if(slip_rx_buffer_len > 1000) return;//temporary hack       
+    if(ch == SLIP::END && slip_rx_buffer_len==0) return;
+    if(ch == SLIP::END) {        
+        ipx_send(slip_rx_buffer,slip_rx_buffer_len);
+        slip_rx_buffer_len=0;
+        return;
+    }          
+    if(slip_rx_buffer_len > 1000) return;
     slip_rx_buffer[slip_rx_buffer_len]=ch;
-    slip_rx_buffer_len++;        
+    slip_rx_buffer_len++;
 }
 
 void ZPacket::serialIncoming() {
@@ -128,31 +129,7 @@ void ZPacket::send_frame(uint8_t *payload,uint16_t len) {
     ESPif->linkoutput(ESPif,tx);
 }
 
-/*
-TX test code
-    //char tx[42]= {0xff,0xff,0xff,0xff,0xff,0xff,0x5c,0xcf,0x7f,0x8b,0x1c,0x9a,0x08,0x06,0x00,0x01,0x08,0x00,0x06,0x04,0x00,0x01,0x5c,0xcf,0x7f,0x8b,0x1c,0x9a,0xc0,0xa8,0x56,0xdc,0x00,0x00,0x00,0x00,0x00,0x00,0xc0,0xa8,0x56,0xdc};    
-    //test = pbuf_alloc(PBUF_RAW_TX, sizeof(tx), PBUF_RAM);    
-    //if(!test) {
-    //    serial.println("error allocating pbuff");
-    //    serial.flush();
-    //    return;
-    //}
-    //test->len = sizeof(tx);
-    //memcpy(test->payload ,tx ,sizeof(tx));  
-
-    if(!ESPif->linkoutput(ESPif,test)) {
-        serial.println("error sending");
-    }
-    else {
-        serial.println("success sending");
-       // pbuf_free(test);
-
-//    if(p->payload[0] != 0x29) return;
-    
-       //serial.printf("type:%u..",ethz->type);
-
-*/
-void ZPacket::debug_frame_print(ethernet_packet *p) {    
+void ZPacket::slip_tx(ethernet_packet *p) {    
     int i;
     if(p->ppEnqueue) {        
         memcpy(packet_buffer,p->payload+4,6);
@@ -170,32 +147,13 @@ void ZPacket::debug_frame_print(ethernet_packet *p) {
     }           
     serial.flush();    
 }
-void ZPacket::debug_msg(uint8_t *msg,uint16_t len) {        
-    packet_buffer[0]=0xFF;
-    packet_buffer[1]=0xFF;
-    packet_buffer[2]=0xFF;
-    packet_buffer[3]=0xFF;
-    packet_buffer[4]=0xFF;
-    packet_buffer[5]=0xFF;
-    packet_buffer[6]=0x5C;
-    packet_buffer[7]=0xCF;
-    packet_buffer[8]=0x7F;
-    packet_buffer[9]=0x8B;
-    packet_buffer[10]=0x1C;
-    packet_buffer[11]=0x9A;
-    packet_buffer[12]=0x12;
-    packet_buffer[13]=0x34;
-    memcpy(packet_buffer+14,msg,len);    
-    send_frame(packet_buffer,len+14);
-    
-}
 
 void ZPacket::loop() {       
     ethernet_packet *p;
     while(packet_queue != NULL) {
         p = packet_queue;
         packet_queue = packet_queue->next;
-        debug_frame_print(p);        
+        slip_tx(p);        
         free(p->payload);
         delete p;
         packet_queue_depth--;
