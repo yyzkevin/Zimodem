@@ -96,8 +96,7 @@ void ICACHE_RAM_ATTR rx_frame(struct RxPacket *p) {
     b4..b7 = subtype
     */
     //if(p->data[0] != 0x80) return;  // We only want to  handle data frames        
-    if(p->data[10] == 0x74) return;
-
+    
     if(p->rx_ctl.legacy_length > 1500) return; //any larger means something is wrong
     
     ethernet_packet *pkt;
