@@ -71,8 +71,7 @@ class ZPacket : public ZMode {
         uint8_t slip_rx_buffer[3030];   
         uint8_t slip_rx_buffer_decoded[3030];
         uint16_t slip_rx_buffer_len;
-        uint16_t slip_rx_fsm;
-        
+                
         void push_packet(char *payload,uint16_t len);
         void slip_tx(ethernet_packet *p);        
         void send_frame(uint8_t *payload,uint16_t len);

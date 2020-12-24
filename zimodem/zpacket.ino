@@ -95,7 +95,7 @@ void ZPacket::slip_rx(uint8_t ch) {
         slip_rx_buffer_len=0;
         return;
     }          
-    if(slip_rx_buffer_len > 1000) return;
+    if(slip_rx_buffer_len > 3000) return;   //let it overflow until we get an END
     slip_rx_buffer[slip_rx_buffer_len]=ch;
     slip_rx_buffer_len++;
 }
