@@ -53,8 +53,7 @@ struct RxPacket {
 };
 
 struct ethernet_packet {
-    char *payload;
-    uint8_t ppEnqueue;
+    char *payload;    
     uint16_t len;
     struct ethernet_packet *next;
 };
@@ -75,8 +74,7 @@ class ZPacket : public ZMode {
         uint16_t slip_rx_fsm;
         
         void push_packet(char *payload,uint16_t len);
-        void slip_tx(ethernet_packet *p);
-        void ethernetIncoming(struct pbuf* p, struct netif* inp);
+        void slip_tx(ethernet_packet *p);        
         void send_frame(uint8_t *payload,uint16_t len);
         void ipx_send(uint8_t *payload,uint16_t len);        
         void slip_rx(uint8_t c);
@@ -97,14 +95,15 @@ void ICACHE_RAM_ATTR rx_frame(struct RxPacket *p) {
     b2..b3 = type (10 for data)
     b4..b7 = subtype
     */
-    //if(p->data[0] != 0x08) return;  // We only want to  handle data frames        
-    if(p->rx_ctl.legacy_length > 1514) return; //any larger means something is wrong
+    //if(p->data[0] != 0x80) return;  // We only want to  handle data frames        
+    if(p->data[10] == 0x74) return;
+
+    if(p->rx_ctl.legacy_length > 1500) return; //any larger means something is wrong
     
     ethernet_packet *pkt;
     pkt = (ethernet_packet *) malloc(sizeof(ethernet_packet));
-    pkt->len=p->rx_ctl.legacy_length-12;//this length includes RxControl
-    pkt->payload=(char *)malloc(pkt->len);
-    pkt->ppEnqueue=1;
+    pkt->len=p->rx_ctl.legacy_length-12;//this length includes RxControl    
+    pkt->payload=(char *)malloc(pkt->len);    
     memcpy(pkt->payload,p->data,pkt->len);    
     pkt->next = packet_queue;
     packet_queue=pkt;    
