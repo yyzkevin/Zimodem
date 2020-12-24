@@ -50,7 +50,8 @@ void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
         packet_buffer[9]=mac_address[3];
         packet_buffer[10]=mac_address[4];
         packet_buffer[11]=mac_address[5];
-        
+
+        /*    
         packet_len = len + 3;
         packet_buffer[12]=(packet_len >> 8) & 0xFF;
         packet_buffer[13]=packet_len & 0xFF;
@@ -60,6 +61,13 @@ void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
         packet_buffer[16]=0x03;         
         memcpy(packet_buffer+17,payload,len);
         send_frame(packet_buffer,len+17);        
+        */                    
+        packet_buffer[12]=0x81;
+        packet_buffer[13]=0x37;        
+        memcpy(packet_buffer+14,payload,len);
+        send_frame(packet_buffer,len+14);        
+        
+       
 }
 
 void ZPacket::slip_rx(uint8_t ch) {
@@ -99,7 +107,7 @@ void ZPacket::slip_tx(ethernet_packet *p) {
     //memcpy(packet_buffer,p->payload,p->len);
     //if(p->payload[32] !=0xE0 || p->payload[33] !=0xE0)  return;   // Novell implementation only       
     encoded_len=SLIP::encode(packet_buffer,p->len-35,slip_tx_buffer);    
-    //encoded_len=SLIP::encode(packet_buffer,100,slip_tx_buffer);    
+    encoded_len=SLIP::encode(packet_buffer,100,slip_tx_buffer);    
     for(i=0;i<encoded_len;i++) {  
         serial.printc(slip_tx_buffer[i]);              
     }           
