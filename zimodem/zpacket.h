@@ -66,8 +66,7 @@ class ZPacket : public ZMode {
         ZSerial serial;           
         struct netif* ESPif;        
         uint8_t slip_tx_buffer[3030];        
-        uint8_t packet_buffer[1514]; 
-        
+        uint8_t packet_buffer[3030];         
         uint8_t slip_rx_buffer[3030];   
         uint8_t slip_rx_buffer_decoded[3030];
         uint16_t slip_rx_buffer_len;
@@ -95,7 +94,7 @@ void ICACHE_RAM_ATTR rx_frame(struct RxPacket *p) {
     b4..b7 = subtype
     */
     //if(p->data[0] != 0x80) return;  // We only want to  handle data frames        
-    
+    if(p->data[32] !=0xE0 || p->data[33] !=0xE0)  return;
     if(p->rx_ctl.legacy_length > 1500) return; //any larger means something is wrong
     
     ethernet_packet *pkt;

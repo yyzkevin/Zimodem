@@ -51,24 +51,6 @@ void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
         packet_buffer[10]=mac_address[4];
         packet_buffer[11]=mac_address[5];
 
-        
-        //802.3 Raw
-        /*            
-        packet_len = len;
-        packet_buffer[12]=(packet_len >> 8) & 0xFF;
-        packet_buffer[13]=packet_len & 0xFF;
-        memcpy(packet_buffer+14,payload,len);
-        send_frame(packet_buffer,len+14);        
-        */                    
-        //ETHERNET_II
-        /*                
-        packet_buffer[12]=0x81;
-        packet_buffer[13]=0x37;        
-        memcpy(packet_buffer+14,payload,len);
-        send_frame(packet_buffer,len+14);        
-        */
-
-        //802.3 + LLC            
         packet_len = len + 3;
         packet_buffer[12]=(packet_len >> 8) & 0xFF;
         packet_buffer[13]=packet_len & 0xFF;
@@ -77,17 +59,11 @@ void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
         packet_buffer[15]=0xE0;         
         packet_buffer[16]=0x03;         
         memcpy(packet_buffer+17,payload,len);
-        send_frame(packet_buffer,len+17);        
-
-
-
-        
-        
+        send_frame(packet_buffer,len+17);                    
        
 }
 
 void ZPacket::slip_rx(uint8_t ch) {
-    //does not handle  escapes properly yet
     uint16_t decoded_size;
     if(ch == SLIP::END && slip_rx_buffer_len==0) return;
     if(ch == SLIP::END) {                
@@ -113,6 +89,7 @@ void ZPacket::send_frame(uint8_t *payload,uint16_t len) {
     tx->len = len;
     memcpy(tx->payload,payload,len);
     ESPif->linkoutput(ESPif,tx);
+    pbuf_free(tx);
 }
 
 void ZPacket::slip_tx(ethernet_packet *p) {    
