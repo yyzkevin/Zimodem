@@ -66,8 +66,9 @@ void ZPacket::ipx_send(uint8_t *payload,uint16_t len) {
 void ZPacket::slip_rx(uint8_t ch) {
     uint16_t decoded_size;
     if(ch == SLIP::END && slip_rx_buffer_len==0) return;
-    if(ch == SLIP::END) {                
-        ipx_send(slip_rx_buffer,slip_rx_buffer_len);
+    if(ch == SLIP::END) {        
+        decoded_size = SLIP::decode(slip_rx_buffer,slip_rx_buffer_len,slip_rx_buffer_decoded);
+        ipx_send(slip_rx_buffer_decoded,decoded_size);        
         slip_rx_buffer_len=0;
         return;
     }          
@@ -83,12 +84,16 @@ void ZPacket::serialIncoming() {
         slip_rx(HWSerial.read());
     }      
 }
-void ZPacket::send_frame(uint8_t *payload,uint16_t len) {
+void ZPacket::send_frame(uint8_t *payload,uint16_t len) {    
+    /*
+    This crashes under version 2.0 during "rapid" sending.
+    */
     pbuf *tx;
-    tx = pbuf_alloc(PBUF_RAW_TX, len, PBUF_RAM);        
+    //tx = pbuf_alloc(PBUF_RAW_TX, len, PBUF_RAM);        
+    tx = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);        
     tx->len = len;
     memcpy(tx->payload,payload,len);
-    ESPif->linkoutput(ESPif,tx);
+    ESPif->linkoutput(ESPif,tx);    
     pbuf_free(tx);
 }
 
